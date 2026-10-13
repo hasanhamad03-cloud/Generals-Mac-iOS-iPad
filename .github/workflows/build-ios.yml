@@ -14,9 +14,9 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
-      - name: Setup CMake, Ninja and Dependencies
+      - name: Setup CMake and Ninja
         run: |
-          brew install cmake ninja freetype
+          brew install cmake ninja
           echo "/opt/homebrew/bin" >> $GITHUB_PATH
 
       - name: Fetch and Stage MoltenVK Framework
@@ -29,19 +29,21 @@ jobs:
           chmod +x ./scripts/build/ios/stage-fonts.sh
           ./scripts/build/ios/stage-fonts.sh
 
+      - name: Inject Freetype Downloader into CMake
+        run: |
+          # حقن كود جلب مكتبة فري تايب المخصصة للـ آي أو إس مباشرة بأول ملف كولونيل للمشروع
+          sed -i '' '1s/^/include(FetchContent)\nFetchContent_Declare(Freetype URL https:\/\/download.savannah.gnu.org\/releases\/freetype\/freetype-2.13.2.tar.gz)\nFetchContent_MakeAvailable(Freetype)\nset(FREETYPE_INCLUDE_DIRS ${freetype_SOURCE_DIR}\/include CACHE PATH "" FORCE)\nset(FREETYPE_LIBRARIES freetype CACHE STRING "" FORCE)\n/' Core/Libraries/Source/WwVegas/WW3D2/CMakeLists.txt
+
       - name: Configure CMake for iOS Vulkan
         run: |
           export PATH="/opt/homebrew/bin:$PATH"
-          # توجيه الـ CMake لمسار مكتبة Freetype اللي نزلناها عن طريق brew
           cmake -B build/ios-vulkan \
             -G Ninja \
             -DCMAKE_SYSTEM_NAME=iOS \
             -DCMAKE_OSX_ARCHITECTURES=arm64 \
             -DCMAKE_BUILD_TYPE=Release \
             -DGENERALS_IOS=ON \
-            -DFREETYPE_INCLUDE_DIR_ft2build=/opt/homebrew/include/freetype2 \
-            -DFREETYPE_LIBRARY_DEBUG=/opt/homebrew/lib/libfreetype.dylib \
-            -DFREETYPE_LIBRARY_RELEASE=/opt/homebrew/lib/libfreetype.dylib
+            -DSAGE_USE_DETERMINISTIC_MATH=OFF
 
       - name: Build Game Target Executable
         run: |
